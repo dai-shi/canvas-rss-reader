@@ -39,7 +39,7 @@ var rect = new Kinetic.Rect({
   y: 0,
   width: stage.getWidth(),
   height: stage.getHeight(),
-  fill: 'black'
+  fill: '#000000'
 });
 
 var text = new Kinetic.Text({
@@ -48,7 +48,7 @@ var text = new Kinetic.Text({
   text: 'Hello World!',
   fontSize: 30,
   fontFamily: 'Arial',
-  fill: 'lightgray'
+  fill: '#eeeeee'
 });
 
 text.setOffset({
@@ -59,3 +59,51 @@ text.setOffset({
 layer.add(rect);
 layer.add(text);
 stage.add(layer);
+
+function updateRssContent(items) {
+  $.each(items, function(index, item) {
+    var text = new Kinetic.Text({
+      x: 5,
+      y: 5,
+      text: item.title,
+      fontSize: 12,
+      fontFamily: 'Arial',
+      fill: '#aaaaff'
+    });
+    text.setOffset({
+      y: -index * (text.getHeight() + 5)
+    });
+    layer.add(text);
+  });
+  layer.draw();
+}
+
+
+var rssurl = location.hash ? location.hash.substring(1) : 'news/itmedia%26cnetjapan.rss';
+if (rssurl.lastIndexOf('http://', 0) !== 0) {
+  rssurl = 'http://rss-pipes.herokuapp.com/aggregator/' + rssurl;
+}
+
+$.ajax({
+  type: 'GET',
+  url: rssurl,
+  dataType: 'xml',
+  success: function(xml) {
+    var $xml = $(xml);
+    var items = [];
+    $xml.find("item").each(function() {
+      var $this = $(this);
+      var item = {
+        title: $this.find("title").text(),
+        link: $this.find("link").text(),
+        description: $this.find("description").text(),
+        pubDate: $this.find("pubDate").text()
+      };
+      items.push(item);
+    });
+    updateRssContent(items);
+  },
+  error: function() {
+    alert('failed to get the rss: ' + rssurl);
+  }
+});
