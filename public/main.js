@@ -32,14 +32,30 @@ var stage = new Kinetic.Stage({
   height: window.innerHeight
 });
 
-var layer = new Kinetic.Layer();
-
 var rect = new Kinetic.Rect({
   x: 0,
   y: 0,
   width: stage.getWidth(),
   height: stage.getHeight(),
   fill: '#000000'
+});
+
+var layer = new Kinetic.Layer({
+  draggable: true,
+  dragBoundFunc: function(pos) {
+    var newY = pos.y;
+    if (newY > 50) {
+      newY = 50;
+    }
+    var minY = -50 - rect.getHeight() + stage.getHeight();
+    if (newY < minY) {
+      newY = minY;
+    }
+    return {
+      x: this.getAbsolutePosition().x,
+      y: newY
+    };
+  }
 });
 
 var text = new Kinetic.Text({
@@ -61,20 +77,22 @@ layer.add(text);
 stage.add(layer);
 
 function updateRssContent(items) {
+  var y = 5;
   $.each(items, function(index, item) {
     var text = new Kinetic.Text({
       x: 5,
-      y: 5,
+      y: y,
       text: item.title,
       fontSize: 12,
       fontFamily: 'Arial',
       fill: '#aaaaff'
     });
-    text.setOffset({
-      y: -index * (text.getHeight() + 5)
-    });
+    y = y + text.getHeight() + 5;
     layer.add(text);
   });
+  if (y > rect.getHeight()) {
+    rect.setHeight(y);
+  }
   layer.draw();
 }
 
