@@ -32,13 +32,7 @@ var stage = new Kinetic.Stage({
   height: window.innerHeight
 });
 
-var rect = new Kinetic.Rect({
-  x: 0,
-  y: 0,
-  width: stage.getWidth(),
-  height: stage.getHeight(),
-  fill: '#000000'
-});
+var layerHeight = stage.getHeight;
 
 var layer = new Kinetic.Layer({
   draggable: true,
@@ -47,7 +41,7 @@ var layer = new Kinetic.Layer({
     if (newY > 50) {
       newY = 50;
     }
-    var minY = -50 - rect.getHeight() + stage.getHeight();
+    var minY = -50 - layerHeight + stage.getHeight();
     if (newY < minY) {
       newY = minY;
     }
@@ -58,25 +52,18 @@ var layer = new Kinetic.Layer({
   }
 });
 
-var text = new Kinetic.Text({
-  x: stage.getWidth() / 2,
-  y: stage.getHeight() / 2,
-  text: 'Hello World!',
-  fontSize: 30,
-  fontFamily: 'Arial',
-  fill: '#eeeeee'
-});
-
-text.setOffset({
-  x: text.getWidth() / 2,
-  y: text.getHeight() / 2
-});
-
-layer.add(rect);
-layer.add(text);
 stage.add(layer);
 
 function updateRssContent(items) {
+  var tmp = new Kinetic.Layer();
+  var rect = new Kinetic.Rect({
+    x: 0,
+    y: 0,
+    width: stage.getWidth(),
+    height: stage.getHeight(),
+    fill: '#000000'
+  });
+  tmp.add(rect);
   var y = 5;
   $.each(items, function(index, item) {
     var text = new Kinetic.Text({
@@ -88,14 +75,26 @@ function updateRssContent(items) {
       fill: '#aaaaff'
     });
     y = y + text.getHeight() + 5;
-    layer.add(text);
+    tmp.add(text);
   });
   if (y > rect.getHeight()) {
     rect.setHeight(y);
   }
-  layer.draw();
+  tmp.toImage({
+    width: rect.getWidth(),
+    height: rect.getHeight(),
+    callback: function(img) {
+      var image = new Kinetic.Image({
+        image: img,
+        x: 0,
+        y: 0
+      });
+      layer.add(image);
+      layerHeight = rect.getHeight();
+      layer.draw();
+    }
+  });
 }
-
 
 var rssurl = location.hash ? location.hash.substring(1) : 'news/itmedia%26cnetjapan.rss';
 if (rssurl.lastIndexOf('http://', 0) !== 0) {
