@@ -32,24 +32,35 @@ var stage = new Kinetic.Stage({
   height: window.innerHeight
 });
 
-var layerHeight = stage.getHeight;
+var layerHeight = stage.getHeight();
 
 var layer = new Kinetic.Layer({
   draggable: true,
   dragBoundFunc: function(pos) {
-    var newY = pos.y;
-    if (newY > 50) {
-      newY = 50;
-    }
-    var minY = -50 - layerHeight + stage.getHeight();
-    if (newY < minY) {
-      newY = minY;
-    }
     return {
       x: this.getAbsolutePosition().x,
-      y: newY
+      y: pos.y
     };
   }
+});
+
+layer.on('dragend', function() {
+  var pos = layer.getPosition();
+  var newY;
+  if (pos.y > 0) {
+    newY = 0;
+  } else if (pos.y < -layerHeight + stage.getHeight()) {
+    newY = -layerHeight + stage.getHeight();
+  } else {
+    return;
+  }
+  var tween = new Kinetic.Tween({
+    node: layer,
+    easing: Kinetic.Easings.StrongEaseOut,
+    duration: 0.3,
+    y: newY
+  });
+  tween.play();
 });
 
 stage.add(layer);
