@@ -44,24 +44,65 @@ var layer = new Kinetic.Layer({
   }
 });
 
-layer.on('dragend', function() {
-  var pos = layer.getPosition();
-  var newY;
-  if (pos.y > 0) {
-    newY = 0;
-  } else if (pos.y < -layerHeight + stage.getHeight()) {
-    newY = -layerHeight + stage.getHeight();
-  } else {
-    return;
-  }
-  var tween = new Kinetic.Tween({
-    node: layer,
-    easing: Kinetic.Easings.StrongEaseOut,
-    duration: 0.3,
-    y: newY
+(function() {
+  var lastDragMoveY;
+  var lastDragMoveTime;
+  var lastDragMoveYDiff;
+  var lastDragMoveTimeDiff;
+
+  layer.on('dragstart', function() {
+    lastDragMoveTime = 0;
+    lastDragMoveYDiff = 0;
+    lastDragMoveTimeDiff = 0;
   });
-  tween.play();
-});
+
+  layer.on('dragmove', function() {
+    var now = new Date().getTime();
+    var pos = layer.getPosition();
+    if (lastDragMoveTime > 0) {
+      lastDragMoveYDiff = pos.y - lastDragMoveY;
+      lastDragMoveTimeDiff = now - lastDragMoveTime;
+    }
+    lastDragMoveY = pos.y;
+    lastDragMoveTime = now;
+  });
+
+  layer.on('dragend', function() {
+    console.log('hoge', lastDragMoveTime, lastDragMoveTimeDiff, lastDragMoveY, lastDragMoveYDiff);
+    var pos = layer.getPosition();
+    var easing = Kinetic.Easings.StrongEaseOut;
+    var duration = 0.3;
+    var newY;
+    if (pos.y > 0) {
+      newY = 0;
+    } else if (pos.y < -layerHeight + stage.getHeight()) {
+      newY = -layerHeight + stage.getHeight();
+    } else if (lastDragMoveTimeDiff > 0) {
+      var diffY = lastDragMoveYDiff * 100 / lastDragMoveTimeDiff;
+      if (diffY * diffY < 9) {
+        return;
+      }
+      newY = pos.y + diffY;
+      duration = 1.0;
+      if (newY > 0) {
+        newY = 0;
+        easing = Kinetic.Easing.BounceEaseOut;
+      } else if (newY < -layerHeight + stage.getHeight()) {
+        newY = -layerHeight + stage.getHeight();
+        easing = Kinetic.Easing.BounceEaseOut;
+      }
+    } else {
+      return;
+    }
+    var tween = new Kinetic.Tween({
+      node: layer,
+      easing: easing,
+      duration: duration,
+      y: newY
+    });
+    tween.play();
+  });
+})();
 
 stage.add(layer);
 
