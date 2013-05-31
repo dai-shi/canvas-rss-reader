@@ -49,11 +49,36 @@ var layer = new Kinetic.Layer({
   var lastDragMoveTime;
   var lastDragMoveYDiff;
   var lastDragMoveTimeDiff;
+  var scrollTween = null;
+
+  var playBounceTween = function(targetY) {
+    var tween = new Kinetic.Tween({
+      node: layer,
+      easing: Kinetic.Easings.StrongEaseOut,
+      duration: 0.3,
+      y: targetY
+    });
+    tween.play();
+  };
+
+  layer.on('mousedown touchstart', function() {
+    if (scrollTween) {
+      scrollTween.pause();
+      scrollTween = null;
+      var pos = layer.getPosition();
+      if (pos.y > 0) {
+        playBounceTween(0);
+      } else if (pos.y < -layerHeight + stage.getHeight()) {
+        playBounceTween(-layerHeight + stage.getHeight());
+      }
+    }
+  });
 
   layer.on('dragstart', function() {
-    lastDragMoveTime = 0;
     lastDragMoveYDiff = 0;
     lastDragMoveTimeDiff = 0;
+    lastDragMoveY = 0;
+    lastDragMoveTime = 0;
   });
 
   layer.on('dragmove', function() {
@@ -68,39 +93,58 @@ var layer = new Kinetic.Layer({
   });
 
   layer.on('dragend', function() {
-    console.log('hoge', lastDragMoveTime, lastDragMoveTimeDiff, lastDragMoveY, lastDragMoveYDiff);
     var pos = layer.getPosition();
-    var easing = Kinetic.Easings.StrongEaseOut;
-    var duration = 0.3;
     var newY;
     if (pos.y > 0) {
-      newY = 0;
+      playBounceTween(0);
+      return;
     } else if (pos.y < -layerHeight + stage.getHeight()) {
-      newY = -layerHeight + stage.getHeight();
+      playBounceTween(-layerHeight + stage.getHeight());
+      return;
     } else if (lastDragMoveTimeDiff > 0) {
-      var diffY = lastDragMoveYDiff * 100 / lastDragMoveTimeDiff;
+      var duration = 3.0;
+      var speed = (lastDragMoveYDiff / lastDragMoveTimeDiff) * 1000;
+      var diffY = 0.35 * duration * speed;
       if (diffY * diffY < 9) {
         return;
       }
-      newY = pos.y + diffY;
-      duration = 1.0;
+      var easing = Kinetic.Easings.StrongEaseOut;
+      var newY = pos.y + diffY;
+      var onFinish = null;
       if (newY > 0) {
-        newY = 0;
-        easing = Kinetic.Easing.BounceEaseOut;
+        if (newY > 70) {
+          newY = 70;
+        }
+        onFinish = function() {
+          playBounceTween(0);
+        };
       } else if (newY < -layerHeight + stage.getHeight()) {
-        newY = -layerHeight + stage.getHeight();
-        easing = Kinetic.Easing.BounceEaseOut;
+        if (newY < -layerHeight + stage.getHeight() - 70) {
+          newY = -layerHeight + stage.getHeight() - 70;
+        }
+        onFinish = function() {
+          playBounceTween(-layerHeight + stage.getHeight());
+        };
       }
+      if (onFinish) {
+        duration = Math.abs(newY - pos.y) / speed;
+        if (duration < 0.3) {
+          duration = 0.3;
+        }
+        easing = Kinetic.Easings.Linear;
+      }
+      scrollTween = new Kinetic.Tween({
+        node: layer,
+        easing: easing,
+        duration: duration,
+        y: newY,
+        onFinish: onFinish
+      });
+      scrollTween.play();
+      return;
     } else {
       return;
     }
-    var tween = new Kinetic.Tween({
-      node: layer,
-      easing: easing,
-      duration: duration,
-      y: newY
-    });
-    tween.play();
   });
 })();
 
@@ -122,7 +166,7 @@ function updateRssContent(items) {
       x: 5,
       y: y,
       text: item.title,
-      fontSize: 12,
+      fontSize: 24,
       fontFamily: 'Arial',
       fill: '#aaaaff'
     });
