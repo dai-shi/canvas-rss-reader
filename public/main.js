@@ -150,35 +150,64 @@ var layer = new Kinetic.Layer({
 
 stage.add(layer);
 
-function updateRssContent(items) {
-  var tmp = new Kinetic.Layer();
+function createSmallPane(item, width, height) {
+  var tmp = new Kinetic.Group();
   var rect = new Kinetic.Rect({
     x: 0,
     y: 0,
-    width: stage.getWidth(),
-    height: stage.getHeight(),
-    fill: '#000000'
+    width: width,
+    height: height,
+    fillLinearGradientStartPointY: Math.floor(height * 0.85),
+    fillLinearGradientEndPointY: height,
+    fillLinearGradientColorStops: [0, '#efefef', 1, '#dcdcdc']
   });
   tmp.add(rect);
-  var y = 5;
-  $.each(items, function(index, item) {
-    var text = new Kinetic.Text({
-      x: 5,
-      y: y,
-      text: item.title,
-      fontSize: 24,
-      fontFamily: 'Arial',
-      fill: '#aaaaff'
-    });
-    y = y + text.getHeight() + 5;
-    tmp.add(text);
+  var text1 = new Kinetic.Text({
+    x: 0,
+    y: 0,
+    width: width,
+    height: Math.floor(height * 0.6),
+    padding: 5,
+    fontSize: Math.floor((height * 0.6 - 10) / 2),
+    text: item.title,
+    fontFamily: 'Arial',
+    fill: '#000000',
+    shadowColor: '#ffffff',
+    shadowBlur: -1,
+    shadowOffset: 1,
+    shadowOpacity: 0.9
   });
-  if (y > rect.getHeight()) {
-    rect.setHeight(y);
-  }
-  tmp.toImage({
-    width: rect.getWidth(),
-    height: rect.getHeight(),
+  tmp.add(text1);
+  var summary = item.description.replace(/<.+?>/g, '');
+  var text2 = new Kinetic.Text({
+    x: 0,
+    y: Math.floor(height * 0.6) - 5,
+    width: width,
+    height: Math.floor(height * 0.4),
+    padding: 5,
+    fontSize: Math.floor((height * 0.4 - 10) / 2),
+    text: summary,
+    fontFamily: 'Arial',
+    fill: '#606060'
+  });
+  tmp.add(text2);
+  return tmp;
+}
+
+function updateRssContent(items) {
+  var tmpLayer = new Kinetic.Layer();
+  var width = stage.getWidth();
+  var height = 80;
+  var y = 0;
+  $.each(items, function(index, item) {
+    var tmp = createSmallPane(item, width, height);
+    tmp.setOffsetY(-y);
+    y = y + height;
+    tmpLayer.add(tmp);
+  });
+  tmpLayer.toImage({
+    width: width,
+    height: y,
     callback: function(img) {
       var image = new Kinetic.Image({
         image: img,
@@ -186,7 +215,7 @@ function updateRssContent(items) {
         y: 0
       });
       layer.add(image);
-      layerHeight = rect.getHeight();
+      layerHeight = y;
       layer.draw();
     }
   });
