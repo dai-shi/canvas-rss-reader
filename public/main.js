@@ -32,19 +32,122 @@ var stage = new Kinetic.Stage({
   height: window.innerHeight
 });
 
-var layerHeight = stage.getHeight();
+var mainPane = new Kinetic.Group();
+var leftPane = new Kinetic.Group();
+var rightPane = new Kinetic.Group();
 
-var layer = new Kinetic.Layer({
-  draggable: true,
-  dragBoundFunc: function(pos) {
-    return {
-      x: this.getAbsolutePosition().x,
+mainPane.setX(0);
+leftPane.setX(-stage.getWidth());
+rightPane.setX(stage.getWidth());
+
+var slideLayer = new Kinetic.Layer();
+slideLayer.add(mainPane);
+slideLayer.add(leftPane);
+slideLayer.add(rightPane);
+
+var rssItems = [];
+var rssIndex = 0;
+
+var drawPaneFunc = null;
+
+function playSlideTween() {
+  var width = stage.getWidth();
+  var posX = mainPane.getAbsolutePosition().x;
+  var newRssIndex;
+  var newLeftPane;
+  var newMainPane;
+  var newRightPane;
+
+  if (posX > 20 && rssIndex > 0) {
+    rssIndex--;
+    newRssIndex = rssIndex;
+    newLeftPane = rightPane;
+    newMainPane = leftPane;
+    newRightPane = mainPane;
+    leftPane = newLeftPane;
+    mainPane = newMainPane;
+    rightPane = newRightPane;
+    setTimeout(function() {
+      newLeftPane.setX(width * (newRssIndex - 1));
+      newRightPane.setX(width * (newRssIndex + 1));
+      if (drawPaneFunc) {
+        newLeftPane.setY(0);
+        drawPaneFunc(newLeftPane, rssItems[newRssIndex - 1]);
+      }
+    }, 300);
+    new Kinetic.Tween({
+      node: slideLayer,
+      easing: Kinetic.Easings.StrongEaseOut,
+      duration: 0.3,
+      x: -width * newRssIndex
+    }).play();
+  } else if (posX < -20 && rssIndex < rssItems.length - 1) {
+    rssIndex++;
+    newRssIndex = rssIndex;
+    newLeftPane = mainPane;
+    newMainPane = rightPane;
+    newRightPane = leftPane;
+    leftPane = newLeftPane;
+    mainPane = newMainPane;
+    rightPane = newRightPane;
+    setTimeout(function() {
+      newRightPane.setX(width * (newRssIndex + 1));
+      newLeftPane.setX(width * (newRssIndex - 1));
+      if (drawPaneFunc) {
+        newRightPane.setY(0);
+        drawPaneFunc(newRightPane, rssItems[newRssIndex + 1]);
+      }
+    }, 300);
+    new Kinetic.Tween({
+      node: slideLayer,
+      easing: Kinetic.Easings.StrongEaseOut,
+      duration: 0.3,
+      x: -width * newRssIndex
+    }).play();
+  } else {
+    new Kinetic.Tween({
+      node: mainPane,
+      easing: Kinetic.Easings.StrongEaseOut,
+      duration: 0.3,
+      x: -slideLayer.getAbsolutePosition().x
+    }).play();
+  }
+}
+
+function setupDraggableLayer(layer) {
+  layer.setDraggable(true);
+  var draggingX = false;
+  var draggingY = false;
+  var dragStartPosY = 0;
+  layer.setDragBoundFunc(function(pos) {
+    var newPos = {
+      x: pos.x,
       y: pos.y
     };
-  }
-});
+    if (!draggingX && !draggingY) {
+      if (Math.abs(newPos.y - dragStartPosY) > 35) {
+        draggingY = true;
+        newPos.x = 0;
+      } else if (Math.abs(newPos.x) > 15) {
+        draggingX = true;
+        if (newPos.y > 0) {
+          newPos.y = 0;
+        } else if (newPos.y < -layer.getAttr('scrollHeight') + stage.getHeight()) {
+          newPos.y = -layer.getAttr('scrollHeight') + stage.getHeight();
+        } else {
+          newPos.y = this.getAbsolutePosition().y;
+        }
+      } else {
+        newPos.x = 0;
+      }
+    } else if (draggingX) {
+      newPos.y = this.getAbsolutePosition().y;
+    } else {
+      newPos.x = 0;
+    }
+    return newPos;
+  });
 
-(function() {
   var lastDragMoveY;
   var lastDragMoveTime;
   var lastDragMoveYDiff;
@@ -52,13 +155,12 @@ var layer = new Kinetic.Layer({
   var scrollTween = null;
 
   var playBounceTween = function(targetY) {
-    var tween = new Kinetic.Tween({
+    new Kinetic.Tween({
       node: layer,
       easing: Kinetic.Easings.StrongEaseOut,
       duration: 0.3,
       y: targetY
-    });
-    tween.play();
+    }).play();
   };
 
   layer.on('mousedown touchstart', function() {
@@ -66,10 +168,11 @@ var layer = new Kinetic.Layer({
       scrollTween.pause();
       scrollTween = null;
       var pos = layer.getPosition();
+      var scrollHeight = layer.getAttr('scrollHeight');
       if (pos.y > 0) {
         playBounceTween(0);
-      } else if (pos.y < -layerHeight + stage.getHeight()) {
-        playBounceTween(-layerHeight + stage.getHeight());
+      } else if (pos.y < -scrollHeight + stage.getHeight()) {
+        playBounceTween(-scrollHeight + stage.getHeight());
       }
     }
   });
@@ -79,6 +182,7 @@ var layer = new Kinetic.Layer({
     lastDragMoveTimeDiff = 0;
     lastDragMoveY = 0;
     lastDragMoveTime = 0;
+    dragStartPosY = this.getAbsolutePosition().y;
   });
 
   layer.on('dragmove', function() {
@@ -93,13 +197,20 @@ var layer = new Kinetic.Layer({
   });
 
   layer.on('dragend', function() {
+    if (draggingX) {
+      playSlideTween();
+      draggingX = false;
+      return;
+    }
+    draggingY = false;
     var pos = layer.getPosition();
     var newY;
+    var scrollHeight = layer.getAttr('scrollHeight');
     if (pos.y > 0) {
       playBounceTween(0);
       return;
-    } else if (pos.y < -layerHeight + stage.getHeight()) {
-      playBounceTween(-layerHeight + stage.getHeight());
+    } else if (pos.y < -scrollHeight + stage.getHeight()) {
+      playBounceTween(-scrollHeight + stage.getHeight());
       return;
     } else if (lastDragMoveTimeDiff > 0) {
       var duration = 3.0;
@@ -118,12 +229,12 @@ var layer = new Kinetic.Layer({
         onFinish = function() {
           playBounceTween(0);
         };
-      } else if (newY < -layerHeight + stage.getHeight()) {
-        if (newY < -layerHeight + stage.getHeight() - 70) {
-          newY = -layerHeight + stage.getHeight() - 70;
+      } else if (newY < -scrollHeight + stage.getHeight()) {
+        if (newY < -scrollHeight + stage.getHeight() - 70) {
+          newY = -scrollHeight + stage.getHeight() - 70;
         }
         onFinish = function() {
-          playBounceTween(-layerHeight + stage.getHeight());
+          playBounceTween(-scrollHeight + stage.getHeight());
         };
       }
       if (onFinish) {
@@ -146,12 +257,16 @@ var layer = new Kinetic.Layer({
       return;
     }
   });
-})();
+}
 
-stage.add(layer);
+setupDraggableLayer(mainPane);
+setupDraggableLayer(leftPane);
+setupDraggableLayer(rightPane);
+
+stage.add(slideLayer);
 
 function createSmallPane(item, width, height) {
-  var tmp = new Kinetic.Group();
+  var group = new Kinetic.Group();
   var rect = new Kinetic.Rect({
     x: 0,
     y: 0,
@@ -161,7 +276,7 @@ function createSmallPane(item, width, height) {
     fillLinearGradientEndPointY: height,
     fillLinearGradientColorStops: [0, '#efefef', 1, '#dcdcdc']
   });
-  tmp.add(rect);
+  group.add(rect);
   var text1 = new Kinetic.Text({
     x: 0,
     y: 0,
@@ -177,7 +292,7 @@ function createSmallPane(item, width, height) {
     shadowOffset: 1,
     shadowOpacity: 0.9
   });
-  tmp.add(text1);
+  group.add(text1);
   var summary = item.description.replace(/<.+?>/g, '');
   var text2 = new Kinetic.Text({
     x: 0,
@@ -190,11 +305,12 @@ function createSmallPane(item, width, height) {
     fontFamily: 'Arial',
     fill: '#606060'
   });
-  tmp.add(text2);
-  return tmp;
+  group.add(text2);
+  return group;
 }
 
-function updateRssContent(items) {
+function drawSmallPane(pane, items) {
+  pane.removeChildren();
   var tmpLayer = new Kinetic.Layer();
   var width = stage.getWidth();
   var height = 80;
@@ -214,12 +330,106 @@ function updateRssContent(items) {
         x: 0,
         y: 0
       });
-      layer.add(image);
-      layerHeight = y;
-      layer.draw();
+      pane.add(image);
+      pane.setAttr('scrollHeight', y);
+      pane.draw();
     }
   });
 }
+
+function createBigPane(item, width, height) {
+  var group = new Kinetic.Group();
+  var text1 = new Kinetic.Text({
+    x: 0,
+    y: 0,
+    width: width,
+    padding: 5,
+    fontSize: 24,
+    text: item.title,
+    fontFamily: 'Arial',
+    fill: '#000000'
+  });
+  var y = text1.getHeight();
+  var rect1 = new Kinetic.Rect({
+    x: 0,
+    y: 0,
+    width: width,
+    height: y,
+    fillLinearGradientStartPointY: y - 20,
+    fillLinearGradientEndPointY: y,
+    fillLinearGradientColorStops: [0, '#efefef', 1, '#dcdcdc']
+  });
+  group.add(rect1);
+  group.add(text1);
+  var summary = item.description.replace(/<.+?>/g, '');
+  var text2 = new Kinetic.Text({
+    x: 0,
+    y: y,
+    width: width,
+    padding: 5,
+    fontSize: 16,
+    text: summary,
+    fontFamily: 'Arial',
+    fill: '#606060'
+  });
+  var h = text2.getHeight();
+  if (y + h < height) {
+    h = height - y;
+  }
+  var rect2 = new Kinetic.Rect({
+    x: 0,
+    y: y,
+    width: width,
+    height: h,
+    fillLinearGradientStartPointY: h - 20,
+    fillLinearGradientEndPointY: h,
+    fillLinearGradientColorStops: [0, '#efefef', 1, '#dcdcdc']
+  });
+  group.add(rect2);
+  group.add(text2);
+  return group;
+}
+
+function drawBigPane(pane, item) {
+  if (!item) {
+    return;
+  }
+  pane.removeChildren();
+  var width = stage.getWidth();
+  var height = stage.getHeight();
+  var tmp = createBigPane(item, width, height);
+  if (tmp.getHeight() > height) {
+    height = tmp.getHeight();
+  }
+  new Kinetic.Layer().add(tmp).toImage({
+    width: width,
+    height: height,
+    callback: function(img) {
+      var image = new Kinetic.Image({
+        image: img,
+        x: 0,
+        y: 0
+      });
+      pane.add(image);
+      pane.setAttr('scrollHeight', height);
+      pane.draw();
+    }
+  });
+}
+
+function updateRssContent(items) {
+  rssItems = items;
+  rssIndex = 0;
+
+  drawSmallPane(leftPane, rssItems);
+
+  drawBigPane(mainPane, rssItems[rssIndex]);
+  //drawBigPane(leftPane, rssItems[rssIndex - 1]);
+  drawBigPane(rightPane, rssItems[rssIndex + 1]);
+
+  drawPaneFunc = drawBigPane;
+}
+
 
 var rssurl = location.hash ? location.hash.substring(1) : 'news/itmedia%26cnetjapan.rss';
 if (rssurl.lastIndexOf('http://', 0) !== 0) {
