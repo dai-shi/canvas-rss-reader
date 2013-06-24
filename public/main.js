@@ -350,6 +350,17 @@ function createBigPane(item, width, height) {
     fill: '#000000'
   });
   var y = text1.getHeight();
+  var dateText = new Kinetic.Text({
+    x: 0,
+    y: y,
+    width: width,
+    padding: 5,
+    fontSize: 12,
+    text: new Date(item.pubDate).toLocaleString(),
+    fontFamily: 'Arial',
+    fill: '#000000'
+  });
+  y += dateText.getHeight();
   var rect1 = new Kinetic.Rect({
     x: 0,
     y: 0,
@@ -361,10 +372,12 @@ function createBigPane(item, width, height) {
   });
   group.add(rect1);
   group.add(text1);
+  group.add(dateText);
+  var h_padding = 5;
   var summary = item.description.replace(/<.+?>/g, '');
   var text2 = new Kinetic.Text({
     x: 0,
-    y: y,
+    y: y + h_padding,
     width: width,
     padding: 5,
     fontSize: 16,
@@ -372,7 +385,7 @@ function createBigPane(item, width, height) {
     fontFamily: 'Arial',
     fill: '#606060'
   });
-  var h = text2.getHeight();
+  var h = h_padding + text2.getHeight();
   if (y + h < height) {
     h = height - y;
   }
