@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <script>
       (function(cache) {
         if (!cache) {
@@ -25,6 +25,27 @@
         padding: 0;
         overflow: hidden;
         background-color: #393939;
+      }
+      iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: solid 10px #b0b0b0;
+        background-color: #ffffff;
+        z-index: 9999;
+      }
+      .close-btn {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        padding: 4px 2px 2px 4px;
+        border: solid 1px #000000;
+        background-color: #e0e0e0;
+        z-index: 99999;
+        cursor: pointer;
+        font-size: 16px;
       }
     </style>
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
