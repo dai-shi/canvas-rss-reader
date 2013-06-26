@@ -290,7 +290,7 @@ openButton.add(new Kinetic.Path({
   fill: '#f0f0f0',
   scale: 0.43
 }));
-openButton.on('click', function() {
+openButton.on('click tap', function() {
   if (rssItems[rssIndex]) {
     openUrlInIFrame(rssItems[rssIndex].link);
   }
