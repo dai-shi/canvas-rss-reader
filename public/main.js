@@ -278,24 +278,24 @@ function openUrlInIFrame(url) {
 var buttonLayer = new Kinetic.Layer();
 var openButton = new Kinetic.Group();
 openButton.add(new Kinetic.Circle({
-  x: 10,
-  y: 10,
-  radius: 10,
+  x: 20,
+  y: 20,
+  radius: 20,
   fill: '#707070'
 }));
 openButton.add(new Kinetic.Path({
   x: 0,
-  y: -6,
+  y: -12,
   data: 'M 23.618434,50.171286 41.144607,36.346769 23.23155,22.400304 l 0.0092,8.18132 c 0,0 -7.445838,-1.03921 -11.864782,3.095364 -4.4188829,4.134559 -4.3930939,13.742678 -4.3930939,13.742678 0,0 2.442808,-4.269676 6.9240349,-5.841822 4.481182,-1.572147 9.583341,-0.746586 9.583341,-0.746586 l 0.127874,9.340028 z',
   fill: '#f0f0f0',
-  scale: 0.43
+  scale: 0.86
 }));
 openButton.on('click tap', function() {
   if (rssItems[rssIndex]) {
     openUrlInIFrame(rssItems[rssIndex].link);
   }
 });
-openButton.setX(stage.getWidth() - 24);
+openButton.setX(stage.getWidth() - 44);
 openButton.setY(4);
 buttonLayer.add(openButton);
 
@@ -378,7 +378,7 @@ function createBigPane(item, width, height) {
   var text1 = new Kinetic.Text({
     x: 0,
     y: 0,
-    width: width,
+    width: width - 44,
     padding: 5,
     fontSize: 24,
     text: item.title,
